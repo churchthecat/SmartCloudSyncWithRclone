@@ -12,6 +12,7 @@ InternxtDrive/
 
 # sensitive files
 config/config.sh
+config/folders.conf
 
 # Build artifacts
 release/
