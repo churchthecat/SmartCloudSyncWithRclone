@@ -1,0 +1,19 @@
+# rclone config
+.config/rclone/rclone.conf
+
+# systemd local service
+*.service
+
+# logs
+*.log
+
+# local mounts
+InternxtDrive/
+
+# sensitive files
+config/config.sh
+
+# Build artifacts
+release/
+*.tar.gz
+
