@@ -2,6 +2,9 @@
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
+echo "SmartCloudSyncWithRclone Version: $VERSION"
+
 ACTION=""
 MODE="live"
 
