@@ -1,0 +1,8 @@
+REMOTE="yourcloudprovider"
+REMOTE_BASE_PATH="yourpath/DEVICE_NAME"
+
+FAST_PERCENT=80
+NORMAL_PERCENT=50
+SLOW_LIMIT_MBIT=2
+
+LOGFILE="$HOME/smartcloud.log"
