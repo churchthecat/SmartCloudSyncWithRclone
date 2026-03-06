@@ -1,129 +1,178 @@
 # SmartCloudSyncWithRclone
 
-SmartCloudSyncWithRclone is an automated cloud sync and mount manager built around **rclone + systemd**.
+SmartCloudSyncWithRclone is a lightweight automation layer around rclone that provides:
 
-It provides:
-
-- Automatic cloud mounting
-- Folder-based sync configuration
-- Live / Backup / Hybrid sync modes
+- Folder-based cloud sync
+- Exclusion support
+- Custom remote mapping
 - Bandwidth control
-- Systemd integration
-- Automated release packaging
-- Installer script
-- Version tracking via git tags
+- Systemd timer automation
+- Lock protection to prevent overlapping sync jobs
 
----
+Designed for personal private cloud backup using Internxt (or any rclone-supported remote).
 
-# 🚀 Installation
+------------------------------------------------------------
 
-### Clone Repository
+## 🚀 Features
 
-```bash
-git clone git@github.com:churchthecat/SmartCloudSyncWithRclone.git
-cd SmartCloudSyncWithRclone
-```
+✅ Sync entire home directory with exclusions  
+✅ Override specific folders to custom remote paths  
+✅ Exclude Downloads / cache / temporary files  
+✅ Automatic systemd timer scheduling  
+✅ Lock protection to prevent overlapping sync  
+✅ Bandwidth-aware sync engine  
+✅ Clean CLI interface  
 
-### Install
+------------------------------------------------------------
 
-```bash
-chmod +x install.sh
-./install.sh
-```
+## 📦 Project Structure
 
-This will:
+SmartCloudSyncWithRclone/
 
-- Symlink `smartcloud` to `/usr/local/bin`
-- Make scripts executable
+├── scripts/  
+│   └── main.sh  
 
----
+├── sync_engine.sh  
 
-# 🚀 Usage
+├── config/  
+│   ├── config.sh  
+│   └── folders.conf  
 
-## Setup
+├── tools/  
+│   └── utility scripts  
 
-```bash
-smartcloud setup
-```
+└── install.sh  
 
-Creates:
+------------------------------------------------------------
 
-- Remote configuration
-- Folder mapping setup
+## 🔧 Installation
 
----
+Clone:
 
-## Sync
+git clone git@github.com:churchthecat/SmartCloudSyncWithRclone.git  
+cd SmartCloudSyncWithRclone  
 
-```bash
-smartcloud sync --mode live
-smartcloud sync --mode backup
-smartcloud sync --mode both
-```
+Install:
 
-| Mode   | Description |
-|--------|------------|
-| live   | One-way live sync |
-| backup | Backup to cloud |
-| both   | Run both strategies |
+./install.sh  
 
----
+Reload shell:
 
-## Release
+hash -r  
 
-Generate packaged release:
+------------------------------------------------------------
 
-```bash
-tools/create_release.sh
-```
+## ▶ Usage
 
-It creates:
+### Run Manual Sync
 
-```
-release/SmartCloudSyncWithRclone-vX.X.X.tar.gz
-release/SmartCloudSyncWithRclone-vX.X.X.sha256
-```
+smartcloud sync  
 
----
+### Sync with both modes
 
-# 🚀 Versioning
+smartcloud sync --mode both  
 
-Version is automatically detected from git tags:
+### View Version
 
-```bash
-git tag -a v1.1.0 -m "Release message"
-git push origin v1.1.0
-```
+smartcloud version  
 
-The tool prints the version when executed.
+------------------------------------------------------------
 
----
+## ⏰ Automatic Scheduling (Systemd Timer)
 
-# 📂 Project Structure
+Check timers:
 
-```
-scripts/      Core engine
-tools/        Helpers & release builder
-config/       Configuration templates
-release/      Packaged builds
-install.sh    Installer
-README.md     Documentation
-```
+systemctl --user list-timers  
 
----
+View logs:
 
-# 🔐 Security
+journalctl --user -u smartcloud-sync.service -f  
 
-Do NOT commit:
+------------------------------------------------------------
 
-- `config/folders.conf`
-- Secrets
-- rclone credentials
+## 🔐 Lock Protection
 
-Use `folders.example.conf` as template.
+SmartCloud prevents overlapping sync jobs using:
 
----
+/tmp/smartcloud.lock  
 
-# 📜 License
+If a sync is already running:
 
-MIT
+⚠ SmartCloud already running. Exiting.
+
+------------------------------------------------------------
+
+## 📂 Folder Configuration
+
+Edit:
+
+config/folders.conf  
+
+Example:
+
+/home/anders -> privat/2_HP_pav  
+
+/home/anders/Music     -> privat/Music  
+/home/anders/Torrents  -> privat/Torrents  
+
+EXCLUDE:  
+Downloads/**  
+.cache/**  
+.snap/**  
+
+Rules:
+
+- Custom folder mappings are processed first  
+- Root backup runs after  
+- Exclusions apply globally  
+
+------------------------------------------------------------
+
+## 🛑 Exclusions
+
+You can exclude:
+
+node_modules/**  
+dist/**  
+build/**  
+*.tmp  
+
+These are passed directly to rclone via --exclude-from.
+
+------------------------------------------------------------
+
+## 📊 Logging
+
+Sync logs are stored in:
+
+~/smartcloud.log  
+
+Monitor live:
+
+tail -f ~/smartcloud.log  
+
+------------------------------------------------------------
+
+## 🛡 Safety
+
+- No duplicate sync execution  
+- Timer safe restart  
+- Script path auto-detection  
+- Clean project-root resolution  
+- Config-driven  
+
+------------------------------------------------------------
+
+## 🔮 Future Improvements
+
+Planned upgrades:
+
+- smartcloud status  
+- smartcloud doctor  
+- Live filesystem watcher mode  
+- Better bandwidth auto-detection  
+- Multi-user support  
+
+------------------------------------------------------------
+
+Built for automation. Built for control.
