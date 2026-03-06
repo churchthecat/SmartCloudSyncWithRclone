@@ -1,87 +1,50 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# ==========================================================
-# SmartCloudSyncWithRclone - Sync Engine
-# ==========================================================
+set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$SCRIPT_DIR"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-CONFIG_FILE="$PROJECT_ROOT/config/config.sh"
+source "$BASE_DIR/config/config.sh"
 
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Missing config/config.sh"
-    exit 1
-fi
+FOLDERS_CONF="$BASE_DIR/config/folders.conf"
 
-source "$CONFIG_FILE"
+echo "Starting sync engine..."
 
-# ===== Logging Setup =====
-mkdir -p "$(dirname "$LOGFILE")"
-exec > >(tee -a "$LOGFILE") 2>&1
+TMP_RULES=$(mktemp)
+TMP_EXCLUDES=$(mktemp)
 
-echo "----------------------------------------"
-echo "Starting SmartCloud sync"
-echo "Mode: $SYNC_MODE"
-echo "Remote: $REMOTE:$REMOTE_BASE_PATH"
-echo "Time: $(date)"
-echo "----------------------------------------"
+# Extract sync rules safely
+grep -- "->" "$FOLDERS_CONF" | sed 's/^[ \t]*//' > "$TMP_RULES"
 
-# ===== Bandwidth Detection =====
-# Simple fallback logic (can improve later)
-UPLOAD_SPEED_MBIT=$(cat /sys/class/net/*/speed 2>/dev/null | head -n1)
+# Extract exclusions
+awk '/EXCLUDE:/ {flag=1; next} flag' "$FOLDERS_CONF" > "$TMP_EXCLUDES"
 
-if [ -z "$UPLOAD_SPEED_MBIT" ]; then
-    UPLOAD_SPEED_MBIT=100
-fi
+echo "Loaded sync rules:"
+cat "$TMP_RULES"
+echo
 
-if [ "$UPLOAD_SPEED_MBIT" -gt 100 ]; then
-    LIMIT_PERCENT=$FAST_PERCENT
-elif [ "$UPLOAD_SPEED_MBIT" -gt 20 ]; then
-    LIMIT_PERCENT=$NORMAL_PERCENT
-else
-    LIMIT_PERCENT=20
-fi
+while read -r line; do
 
-BW_LIMIT="$((UPLOAD_SPEED_MBIT * LIMIT_PERCENT / 100))M"
+    LOCAL=$(echo "$line" | cut -d'-' -f1 | sed 's/[ >]*$//')
+    REMOTE=$(echo "$line" | cut -d'>' -f2 | sed 's/^ *//')
 
-echo "Detected link speed: ${UPLOAD_SPEED_MBIT} Mbit"
-echo "Using bandwidth limit: $BW_LIMIT"
+    echo
+    echo "Syncing $LOCAL -> $REMOTE"
 
-# ===== Paths =====
-LOCAL_PATH="$HOME"
-REMOTE_PATH="$REMOTE:$REMOTE_BASE_PATH"
+    rclone sync \
+        "$LOCAL" \
+        "$REMOTE:$REMOTE" \
+        --progress \
+        --transfers=4 \
+        --checkers=8 \
+        --exclude-from="$TMP_EXCLUDES" \
+        --log-file="$LOGFILE" \
+        --log-level INFO
 
-# ===== Sync Logic =====
-case "$SYNC_MODE" in
-    live)
-        echo "Running LIVE sync..."
-        rclone sync "$LOCAL_PATH" "$REMOTE_PATH/live" \
-            --bwlimit "$BW_LIMIT" \
-            -P
-        ;;
-    backup)
-        echo "Running BACKUP copy..."
-        rclone copy "$LOCAL_PATH" "$REMOTE_PATH/backup" \
-            --bwlimit "$BW_LIMIT" \
-            -P
-        ;;
-    both)
-        echo "Running LIVE sync..."
-        rclone sync "$LOCAL_PATH" "$REMOTE_PATH/live" \
-            --bwlimit "$BW_LIMIT" \
-            -P
+done < "$TMP_RULES"
 
-        echo "Running BACKUP copy..."
-        rclone copy "$LOCAL_PATH" "$REMOTE_PATH/backup" \
-            --bwlimit "$BW_LIMIT" \
-            -P
-        ;;
-    *)
-        echo "Unknown SYNC_MODE"
-        exit 1
-        ;;
-esac
+rm "$TMP_RULES"
+rm "$TMP_EXCLUDES"
 
-echo "Sync finished at $(date)"
-echo ""
+echo
+echo "Sync complete."
