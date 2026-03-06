@@ -10,6 +10,11 @@
 # sensitive files
 config/config.sh
 config/folders.conf
+config/*.sh
+!config/config.example.sh
+config/*.sh
+!config/folders.example.sh
+
 
 # Build artifacts
 release/
