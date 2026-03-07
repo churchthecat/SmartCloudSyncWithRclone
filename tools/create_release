@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -e
+
+# ---- Find project root (one directory up from tools) ----
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+VERSION_FILE="$PROJECT_ROOT/VERSION"
+
+if [[ ! -f "$VERSION_FILE" ]]; then
+    echo "❌ VERSION file not found!"
+    exit 1
+fi
+
+VERSION=$(cat "$VERSION_FILE")
+
+echo "Creating release package for version: $VERSION"
+
+# ---- Paths ----
+RELEASE_DIR="$PROJECT_ROOT/release"
+PACKAGE_NAME="SmartCloudSyncWithRclone-$VERSION"
+PACKAGE_PATH="$RELEASE_DIR/$PACKAGE_NAME"
+
+# ---- Cleanup old release ----
+rm -rf "$PACKAGE_PATH"
+rm -f "$RELEASE_DIR/$PACKAGE_NAME.tar.gz"
+rm -f "$RELEASE_DIR/$PACKAGE_NAME.sha256"
+
+mkdir -p "$PACKAGE_PATH"
+
+# ---- Copy required project files ----
+cp -r \
+    "$PROJECT_ROOT/scripts" \
+    "$PROJECT_ROOT/config" \
+    "$PROJECT_ROOT/tools" \
+    "$PROJECT_ROOT/README.md" \
+    "$PROJECT_ROOT/install.sh" \
+    "$PROJECT_ROOT/VERSION" \
+    "$PACKAGE_PATH"
+
+# ---- Build archive ----
+cd "$RELEASE_DIR"
+tar -czf "$PACKAGE_NAME.tar.gz" "$PACKAGE_NAME"
+
+# ---- Generate checksum ----
+sha256sum "$PACKAGE_NAME.tar.gz" > "$PACKAGE_NAME.sha256"
+
+echo "✅ Release created successfully!"
+echo "📦 Archive: $RELEASE_DIR/$PACKAGE_NAME.tar.gz"
+echo "🔐 Checksum: $RELEASE_DIR/$PACKAGE_NAME.sha256"
