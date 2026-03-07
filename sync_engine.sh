@@ -1,51 +1,41 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -e
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$BASE_DIR/config/config.sh"
+source "$BASE_DIR/config/config.sh"
+
 FOLDERS_CONF="$BASE_DIR/config/folders.conf"
 
-# --------------------------------------------------
-# Load config safely
-# --------------------------------------------------
-if [[ ! -f "$CONFIG_FILE" ]]; then
-    echo "❌ Missing config/config.sh"
-    exit 1
-fi
-
-# shellcheck disable=SC1090
-source "$CONFIG_FILE"
-
-# Validate required variables
-if [[ -z "${REMOTE_NAME:-}" ]]; then
-    echo "❌ REMOTE_NAME is not defined in config/config.sh"
-    exit 1
-fi
-
-if [[ -z "${LOGFILE:-}" ]]; then
-    LOGFILE="$HOME/smartcloud.log"
-fi
-
-TMP_EXCLUDES="$(mktemp)"
+TMP_RULES=$(mktemp)
+TMP_EXCLUDES=$(mktemp)
 
 echo "Starting sync engine..."
 
-# --------------------------------------------------
-# Extract exclusions
-# --------------------------------------------------
-awk '/EXCLUDE:/ {flag=1; next} flag' "$FOLDERS_CONF" > "$TMP_EXCLUDES"
+# ---- Extract only valid mappings ----
+awk '
+/->/ && !/^#/ && !/EXCLUDE:/ {
+    print
+}
+' "$FOLDERS_CONF" > "$TMP_RULES"
 
-# --------------------------------------------------
-# Process folder rules
-# --------------------------------------------------
-grep -E '^[[:space:]]*[^#].*->' "$FOLDERS_CONF" | while read -r LINE
-do
-    LOCAL="$(echo "$LINE" | cut -d'-' -f1 | xargs)"
-    REMOTE="$(echo "$LINE" | cut -d'>' -f2 | xargs)"
+# ---- Extract exclusions ----
+awk '
+/EXCLUDE:/ {flag=1; next}
+flag {print}
+' "$FOLDERS_CONF" > "$TMP_EXCLUDES"
 
-    [[ -z "$LOCAL" || -z "$REMOTE" ]] && continue
-    [[ ! -d "$LOCAL" ]] && { echo "⚠ Skipping missing folder: $LOCAL"; continue; }
+# ---- Process mappings ----
+while read -r LINE; do
+
+    LOCAL=$(echo "$LINE" | awk -F"->" '{print $1}' | xargs)
+    REMOTE=$(echo "$LINE" | awk -F"->" '{print $2}' | xargs)
+
+    [[ -z "$LOCAL" ]] && continue
+
+    if [[ -z "$REMOTE" ]]; then
+        REMOTE="$REMOTE_BASE_PATH"
+    fi
 
     echo "Syncing $LOCAL -> $REMOTE"
 
@@ -55,17 +45,13 @@ do
         --progress \
         --transfers=4 \
         --checkers=8 \
-        --fast-list \
-        --checksum \
-        --no-update-modtime \
-        --create-empty-src-dirs \
-        ${BW_LIMIT:-} \
+        --ignore-existing \
         --exclude-from="$TMP_EXCLUDES" \
         --log-file="$LOGFILE" \
         --log-level INFO
 
-done
+done < "$TMP_RULES"
 
-rm -f "$TMP_EXCLUDES"
+rm -f "$TMP_RULES" "$TMP_EXCLUDES"
 
 echo "Sync complete."

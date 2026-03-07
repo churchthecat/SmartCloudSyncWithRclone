@@ -1,139 +1,145 @@
 # SmartCloudSyncWithRclone
 
-SmartCloudSyncWithRclone is a lightweight automation layer around **rclone** that provides structured, configurable cloud synchronization using simple folder rules.
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Status](https://img.shields.io/badge/status-production--ready-green)
+![Shell](https://img.shields.io/badge/language-bash-yellow)
 
-It works with any rclone-supported remote and is designed for personal cloud backups with automation support.
+SmartCloudSyncWithRclone is a lightweight automation layer around **rclone** that provides structured, configurable cloud synchronization using folder-based rules.
 
-Features:
+It is designed for:
 
-* Folder-based sync configuration
-* Global exclusion rules
-* Custom remote path mapping
-* Bandwidth limiting
-* Systemd timer automation
-* Lock protection
-* Clean CLI interface
+- Personal cloud backups
+- Automated synchronization
+- Self-hosted storage replication
+- Secure local → remote mirroring
 
 ---
 
-# 📦 Project Structure
+# 🚀 Architecture
+
+SmartCloud consists of:
 
 ```
-SmartCloudSyncWithRclone/
-
-scripts/
-└── main.sh
-
-sync_engine.sh
-
-config/
-├── config.sh
-└── folders.conf
-
-tools/
-└── helper scripts
-
-install.sh
-README.md
+smartcloud (CLI)
+ ├── main.sh
+ ├── sync_engine.sh
+ ├── configure.sh
+ └── install.sh
 ```
+
+Workflow:
+
+```
+User → smartcloud CLI
+         ↓
+  Parses config
+         ↓
+  Executes rclone sync
+         ↓
+  Applies exclusions + bandwidth + timers
+```
+
+Automation (optional):
+
+- Hourly live sync
+- Weekly backup sync
+- Systemd user timers
+
+---
+
+# 📦 Features
+
+✅ Folder-based sync configuration  
+✅ Global exclusion rules  
+✅ Remote base path support  
+✅ Bandwidth throttling  
+✅ Lock protection  
+✅ Optional systemd automation  
+✅ Interactive configuration CLI  
+✅ Safe public repository design  
 
 ---
 
 # 🔧 Requirements
 
-Install required software:
+Install dependencies:
 
-```
-sudo apt install rclone
+```bash
+sudo apt install rclone bash
 ```
 
-Or install from:
+Or install rclone manually:
 
 https://rclone.org/install/
 
-You must also have:
-
-* bash
-* systemd (optional for automated scheduling)
+Systemd is optional but recommended for automation.
 
 ---
 
 # 🚀 Installation
 
-Clone the repository:
+Clone:
 
-```
+```bash
 git clone https://github.com/your-username/SmartCloudSyncWithRclone.git
 cd SmartCloudSyncWithRclone
 ```
 
-Install the tool:
+Install binary only:
 
-```
-./install.sh
+```bash
+bash install.sh
 ```
 
-Reload shell command cache:
+Install with systemd timers:
 
+```bash
+bash install.sh --enable-timers
 ```
+
+Reload shell:
+
+```bash
 hash -r
 ```
 
-Verify installation:
+Verify:
 
-```
+```bash
 smartcloud version
 ```
 
 ---
 
-# 🔑 Step 1 — Configure rclone Remote
+# 🔐 Initial Setup
 
-Before using SmartCloud, create a remote in rclone.
+Configure everything safely using the interactive CLI:
 
-Run:
-
-```
-rclone config
+```bash
+smartcloud config
 ```
 
-Create a remote and assign it a name:
+This will:
 
-Example:
+- Ask for remote name
+- Ask for remote base path
+- Configure bandwidth
+- Add folder mappings
+- Add exclusions
+- Optionally enable timers
 
-```
-myremote
-```
-
-Test it:
-
-```
-rclone ls myremote:
-```
-
-SmartCloud will use this remote name inside its configuration.
-
----
-
-# ⚙ Step 2 — Configure SmartCloud
-
-Edit:
+It generates:
 
 ```
 config/config.sh
+config/folders.conf
 ```
 
-Example:
-
-```
-REMOTE_NAME="myremote"
-REMOTE_ROOT="backup-root"
-LOG_FILE="$HOME/smartcloud.log"
-```
+⚠ These files should NOT be committed to git.
 
 ---
 
-# 📂 Step 3 — Configure Folder Rules
+# 📂 Folder Configuration
 
 Edit:
 
@@ -141,146 +147,171 @@ Edit:
 config/folders.conf
 ```
 
-This file defines which local folders are synced and where they are stored remotely.
-
 Example:
 
 ```
-# Folder mappings
-
-/home/user/Documents -> backup-root/Documents
-/home/user/Music -> backup-root/Music
-/home/user/Pictures -> backup-root/Pictures
-/home/user/Videos -> backup-root/Videos
-
+/home/user/Documents -> Documents
+/home/user/Music     -> Music
 
 EXCLUDE:
 Downloads/**
 .cache/**
-.local/**
 node_modules/**
 *.tmp
+*.part
 ```
 
-Rules:
+Format:
 
-* Each line maps: local path → remote path
-* Exclusions apply globally
-* Exclusions are relative to the sync root
+```
+LOCAL_PATH -> REMOTE_PATH
+```
+
+Remote path is relative to the configured `REMOTE_BASE_PATH`.
 
 ---
 
 # ▶ Usage
 
-Run manual sync:
+Manual live sync:
 
-```
-smartcloud sync
+```bash
+smartcloud sync --mode live
 ```
 
-Run combined mode:
+Live + backup:
 
-```
+```bash
 smartcloud sync --mode both
 ```
 
-Run live-only sync:
+Check system status:
 
+```bash
+smartcloud status
 ```
-smartcloud sync --mode live
+
+Show version:
+
+```bash
+smartcloud version
 ```
 
 ---
 
-# ⏰ Automatic Scheduling (Systemd Timer)
+# ⏰ Automatic Scheduling (Optional)
 
-If systemd is enabled, SmartCloud can run automatically.
+If enabled via `install.sh --enable-timers`:
 
-List timers:
+- Live mode runs hourly
+- Backup mode runs weekly
 
-```
+Check timers:
+
+```bash
 systemctl --user list-timers
 ```
 
 Restart service:
 
-```
+```bash
 systemctl --user restart smartcloud-sync.service
 ```
 
 View logs:
 
-```
+```bash
 journalctl --user -u smartcloud-sync.service -f
-```
-
----
-
-# 🔐 Lock Protection
-
-SmartCloud prevents overlapping sync jobs using a lock file:
-
-```
-/tmp/smartcloud.lock
-```
-
-If another sync is already running:
-
-```
-SmartCloud already running. Exiting.
 ```
 
 ---
 
 # 📊 Logging
 
-Logs are written to:
+Logs are stored at:
 
 ```
 ~/smartcloud.log
 ```
 
-Monitor live:
+Monitor in real time:
 
-```
+```bash
 tail -f ~/smartcloud.log
 ```
 
 ---
 
-# 🛑 Exclusion Rules
+# 🔒 Security & Safety
 
-Exclusions are defined after the `EXCLUDE:` section in `folders.conf`.
-
-Example:
+Never commit:
 
 ```
-EXCLUDE:
-Downloads/**
-.cache/**
-node_modules/**
-dist/**
-*.tmp
-*.part
+config/config.sh
+config/folders.conf
+smartcloud.log
 ```
 
-These are passed directly to rclone via `--exclude-from`.
+Add to `.gitignore`:
 
+```
+config/
+*.log
+/tmp/
+```
+
+SmartCloud prevents:
+
+- Overlapping sync jobs
+- Accidental recursive syncing into project root
+- Timer collisions
 
 ---
 
-# 🔮 Future Improvements
+# 🏗 Project Structure
 
-Planned:
+```
+SmartCloudSyncWithRclone/
 
-* `smartcloud status`
-* `smartcloud doctor`
-* real-time filesystem watch mode
-* improved bandwidth control
-* multi-user support
+scripts/
+ ├── main.sh
+ ├── sync_engine.sh
+ ├── configure.sh
+ └── install.sh
+
+config/
+ ├── config.sh
+ └── folders.conf
+
+README.md
+```
 
 ---
 
-# License
+# 🤝 Contributing
+
+Pull requests are welcome.
+
+Before submitting:
+
+- Run `shellcheck` on scripts
+- Test manual sync
+- Verify timers if enabled
+
+---
+
+# 🛣 Roadmap
+
+Future improvements:
+
+- `smartcloud doctor`
+- File system watch mode
+- Parallel multi-remote sync
+- Snapshot versioning mode
+- Docker deployment support
+
+---
+
+# 📜 License
 
 MIT
