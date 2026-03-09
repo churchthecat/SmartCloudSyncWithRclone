@@ -1,15 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-echo "Validating project..."
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ ! -f config/config.sh ]; then
-    echo "Missing config/config.sh"
+echo "Validating SmartCloud config..."
+
+if [[ ! -f "$PROJECT_ROOT/config/folders.conf" ]]; then
+    echo "Missing folders.conf"
     exit 1
 fi
 
-if [ ! -f config/folders.conf ]; then
-    echo "Missing config/folders.conf"
+if [[ ! -f "$PROJECT_ROOT/config/config.sh" ]]; then
+    echo "Missing config.sh"
     exit 1
 fi
 
-echo "Validation OK."
+echo "Config OK"

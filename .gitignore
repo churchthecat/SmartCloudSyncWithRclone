@@ -20,3 +20,24 @@ config/*.sh
 release/
 *.tar.gz
 
+# Ignore config secrets
+/config/config.sh
+/config/folders.sh
+/config/exclude.sh
+/config/.env
+/config/*.key
+/config/*.token
+config/config.sh
+config/config.conf
+config/exclude.conf
+
+# Ignore local cache and temp
+/.cache/
+/tmp/
+/*.log
+/.local/share/Trash/**
+
+# Ignore system files
+*.swp
+.DS_Store
+
