@@ -1,80 +1,100 @@
 #!/usr/bin/env bash
-set -e
+# SmartCloudSyncWithRclone
 
-# ==============================
-# SmartCloudSyncWithRclone Sync Engine v2.1
-# ==============================
+VERSION="2.2"
+LOCK_FILE="/tmp/smartcloud.lock"
 
-SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
-PROJECT_ROOT="$(dirname "$SCRIPT")"
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+CONFIG_FILE="$PROJECT_ROOT/config/folders.conf"
 
-# Config paths
-CONFIG_FILE="$PROJECT_ROOT/config/config.sh"
-FOLDERS_FILE="$PROJECT_ROOT/config/folders.conf"
-EXCLUDE_FILE="$PROJECT_ROOT/config/exclude.conf"
+MODE="live"
+EXTRA_ARGS=""
+REMOTE="internxt"  # Change this if you use another rclone remote
 
-# Load configuration
-if [[ ! -f "$CONFIG_FILE" ]]; then
-    echo "❌ config.sh missing at $CONFIG_FILE"
-    exit 1
-fi
-source "$CONFIG_FILE"
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --mode)
+            MODE="$2"
+            shift 2
+            ;;
+        --extra)
+            EXTRA_ARGS="$2"
+            shift 2
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
 
-# Validate essential variables
-: "${REMOTE:?Missing REMOTE in config.sh}"
-: "${HOME_DIR:?Missing HOME_DIR in config.sh}"
-: "${TRANSFERS:=4}"      # default
-: "${CHECKERS:=8}"       # default
-: "${BWLIMIT:=0}"        # unlimited unless set
-: "${DELETE:=false}"     # default mirror delete flag
-: "${MODE:=live}"        # default live mode
-
-echo "Starting sync..."
+echo
+echo "================================"
+echo "SmartCloudSyncWithRclone"
+echo "Started: $(date)"
+echo "PROJECT ROOT = $PROJECT_ROOT"
+echo "================================"
+echo
 echo "Mode: $MODE"
 echo
 
-# Read folder mappings: local:remote_sub
-while IFS=":" read -r LOCAL REMOTE_SUB; do
-    # Skip empty lines and comments
-    [[ -z "$LOCAL" || "$LOCAL" =~ ^# ]] && continue
+# Lockfile handling
+if [[ -f "$LOCK_FILE" ]]; then
+    echo "⚠ Another sync is already running."
+    exit 1
+fi
+trap 'rm -f "$LOCK_FILE"' EXIT
+touch "$LOCK_FILE"
 
-    # Build full local and remote paths
-    SRC="$HOME_DIR/$LOCAL"
-    DEST="$REMOTE:$REMOTE_SUB"
+# Check configuration
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo "Missing folders.conf"
+    exit 1
+fi
 
-    # Dry-run mode
+# Count valid folders
+TOTAL=$(grep -v '^#' "$CONFIG_FILE" | grep -v '^$' | wc -l)
+COUNT=0
+
+# Process each folder
+grep -v '^#' "$CONFIG_FILE" | grep -v '^$' | while IFS=":" read -r SRC DEST; do
+
+    [[ -z "$SRC" ]] && continue
+    [[ -z "$DEST" ]] && continue
+
+    COUNT=$((COUNT+1))
+
+    echo
+    echo "Folder [$COUNT/$TOTAL]"
+    echo "$SRC -> $DEST"
+    echo
+
+    # Determine local source path
+    if [[ "$SRC" = /* ]]; then
+        LOCAL_SRC="$SRC"
+    else
+        LOCAL_SRC="$HOME/$SRC"
+    fi
+
+    # Dry-run option
     if [[ "$MODE" == "dry-run" ]]; then
-        if [[ -d "$SRC" ]]; then
-            FILE_COUNT=$(find "$SRC" -type f -size +0c 2>/dev/null | wc -l)
-        else
-            FILE_COUNT=0
-        fi
-        echo "[DRYRUN] $SRC -> $DEST ($FILE_COUNT files)"
-        continue
+        DRY="--dry-run"
+    else
+        DRY=""
     fi
 
-    # Skip missing folders in live mode
-    if [[ ! -d "$SRC" ]]; then
-        echo "⚠ Skipping missing folder: $SRC"
-        continue
-    fi
+    # Run rclone sync
+    rclone sync \
+        "$LOCAL_SRC" "$REMOTE:$DEST" \
+        --progress \
+        --fast-list \
+        --transfers 4 \
+        --checkers 8 \
+        --delete-during \
+        $DRY \
+        $EXTRA_ARGS
 
-    # Set delete flag if mirror mode enabled
-    DELETE_FLAG=""
-    [[ "$DELETE" == "true" ]] && DELETE_FLAG="--delete-during"
-
-    echo "Syncing $SRC -> $DEST"
-
-    rclone sync "$SRC" "$DEST" \
-        --exclude-from "$EXCLUDE_FILE" \
-        --exclude "**/*.nomedia" \
-        --min-size 1B \
-        --transfers "$TRANSFERS" \
-        --checkers "$CHECKERS" \
-        --tpslimit 2 \
-        $DELETE_FLAG \
-        --bwlimit "$BWLIMIT"
-done < "$FOLDERS_FILE"
+done
 
 echo
 echo "Sync complete"
