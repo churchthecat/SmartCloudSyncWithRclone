@@ -1,33 +1,56 @@
 # SmartCloudSyncWithRclone
 
-SmartCloudSyncWithRclone is a bash-based synchronization tool built on top of rclone for Linux. It allows selective folder syncing to cloud remotes, dry-run previews, mirror deletes, and skipping empty files automatically.
+**SmartCloudSyncWithRclone** is a Bash-based synchronization tool for Linux, built on top of [rclone](https://rclone.org/). It allows selective folder syncing to cloud remotes, dry-run previews, mirror deletes, and skipping empty files automatically.
+
+---
+
+## Features
+
+- Sync multiple local folders to cloud remotes
+- Dry-run mode to preview changes
+- Optional mirror delete
+- Skips empty files automatically
+- Supports rclone-compatible cloud remotes
+- Handles rate-limited remotes safely
+
+---
+
+## Requirements
+
+- Linux
+- [rclone](https://rclone.org/) installed and configured
+- Bash shell (tested on Bash 5+)
+
+---
 
 ## Setup
 
-Clone the repository:
+1. **Clone the repository**
 
-git clone https://github.com/YOUR_USER/SmartCloudSyncWithRclone.git
+```bash
+git clone https://github.com/churchthecat/SmartCloudSyncWithRclone.git
 cd SmartCloudSyncWithRclone
 
-Copy the example configuration and edit it:
+Copy and edit the configuration
 
 cp config/config.example.sh config/config.sh
 nano config/config.sh
 
-Edit placeholders for REMOTE (your cloud remote) and HOME_DIR (your local root path). Optionally adjust TRANSFERS, CHECKERS, BWLIMIT, DELETE, and MODE.
+Update placeholders: REMOTE (your cloud remote) and HOME_DIR (local root path)
 
-Make scripts executable:
+Optional: adjust TRANSFERS, CHECKERS, BWLIMIT, DELETE, and MODE
+
+Make scripts executable
 
 chmod +x sync_engine.sh
 chmod +x scripts/main.sh
 
-Optional: install globally:
+Optional: install globally
 
 sudo ln -sf $(pwd)/scripts/main.sh /usr/local/bin/smartcloud
+Folder Mapping
 
-## Folder Mapping
-
-Edit `config/folders.conf` to map local → remote paths. Example:
+Edit config/folders.conf to map local → remote paths. Example:
 
 Music:Music
 Torrents:Torrents
@@ -36,23 +59,26 @@ Pictures:Private/DEVICE/Pictures
 Videos:Private/DEVICE/Videos
 Desktop:Private/DEVICE/Desktop
 
+Music and Torrents sync to the remote root.
 
-- Music and Torrents sync to remote root.
-- Other folders sync under Private/DEVICE/.
+Other folders sync under Private/DEVICE/.
 
-## Usage
+Usage
 
-Dry-run (preview changes):
+Preview changes (dry-run)
 
-smartcloud --dry-run
+smartcloud --mode dry-run
 
-Live sync:
+Perform live sync
 
 smartcloud
 
-## Excluding Files
+Additional options
 
-Edit `config/exclude.conf` to skip unwanted files or folders. Example:
+smartcloud --mode live --extra "--size-only"
+Excluding Files
+
+Edit config/exclude.conf to skip unwanted files or folders. Example:
 
 *.part
 *.torrent
@@ -60,10 +86,18 @@ Edit `config/exclude.conf` to skip unwanted files or folders. Example:
 .local/**
 .snap/**
 .local/share/Trash/**
+Notes
 
-## Notes
+Empty files are skipped automatically
 
-- Empty files are skipped automatically.
-- Mirror delete is optional via DELETE=true in config.sh.
-- Supports dry-run and live sync modes.
-- Safe for rate-limited cloud remotes.
+Mirror delete is optional via DELETE=true in config.sh
+
+Safe to use with rate-limited cloud remotes
+
+Works on Linux with Bash and rclone
+
+Version
+
+v2.2 – Current stable release
+
+
