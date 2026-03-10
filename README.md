@@ -101,6 +101,3 @@ Mirror delete is optional via DELETE=true in config.sh
 Safe to use with rate-limited cloud remotes
 
 Works on Linux with Bash and rclone
-
-
-```
