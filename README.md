@@ -25,67 +25,73 @@
 
 ## Setup
 
-1. **Clone the repository**
+**Clone the repository**
 
 ```bash
 git clone https://github.com/churchthecat/SmartCloudSyncWithRclone.git
 cd SmartCloudSyncWithRclone
-
-Copy and edit the configuration
-
+```
+**Copy and edit the configuration**
+```
 cp config/config.example.sh config/config.sh
 nano config/config.sh
-
-Update placeholders: REMOTE (your cloud remote) and HOME_DIR (local root path)
+```
+**Update placeholders: REMOTE (your cloud remote) and HOME_DIR (local root path)**
 
 Optional: adjust TRANSFERS, CHECKERS, BWLIMIT, DELETE, and MODE
 
-Make scripts executable
-
+**Make scripts executable**
+```
 chmod +x sync_engine.sh
 chmod +x scripts/main.sh
-
-Optional: install globally
-
+```
+**Optional: install globally**
+```
 sudo ln -sf $(pwd)/scripts/main.sh /usr/local/bin/smartcloud
-Folder Mapping
-
+```
+**Folder Mapping**
 Edit config/folders.conf to map local → remote paths. Example:
-
+```
 Music:Music
 Torrents:Torrents
 Documents:Private/DEVICE/Documents
 Pictures:Private/DEVICE/Pictures
 Videos:Private/DEVICE/Videos
 Desktop:Private/DEVICE/Desktop
-
+```
 Music and Torrents sync to the remote root.
 
 Other folders sync under Private/DEVICE/.
 
-Usage
-
+**Usage**
+```
 Preview changes (dry-run)
-
+```
+```
 smartcloud --mode dry-run
-
+```
+```
 Perform live sync
-
+```
+```
 smartcloud
+```
 
 Additional options
-
+```
 smartcloud --mode live --extra "--size-only"
-Excluding Files
+```
+**Excluding Files**
 
 Edit config/exclude.conf to skip unwanted files or folders. Example:
-
+```
 *.part
 *.torrent
 .cache/**
 .local/**
 .snap/**
 .local/share/Trash/**
+```
 Notes
 
 Empty files are skipped automatically
@@ -96,8 +102,5 @@ Safe to use with rate-limited cloud remotes
 
 Works on Linux with Bash and rclone
 
-Version
 
-v2.2 – Current stable release
-
-
+```
