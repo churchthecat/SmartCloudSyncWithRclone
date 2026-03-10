@@ -70,9 +70,9 @@ Preview changes (dry-run)
 ```
 smartcloud --mode dry-run
 ```
-```
+
 Perform live sync
-```
+
 ```
 smartcloud
 ```
