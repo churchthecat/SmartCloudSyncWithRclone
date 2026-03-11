@@ -1,6 +1,6 @@
 # SmartCloudSyncWithRclone
 
-**SmartCloudSyncWithRclone** is a Bash-based synchronization tool for Linux, built on top of [rclone](https://rclone.org/). It allows selective folder syncing to cloud remotes, dry-run previews, mirror deletes, and skipping empty files automatically. Works om most cloudservices but depends if rclone access is included in your plan. So far its basic but still better than my native option on my cloud provider. Rclone also support local encryption before uploading an decryption on download.
+**SmartCloudSyncWithRclone** is a Bash-based synchronization tool for Linux, built on top of [rclone](https://rclone.org/). It allows selective folder syncing to cloud remotes, dry-run previews, mirror deletes, and skipping empty files automatically. Works on most cloudservices but depends if rclone access is included in your plan. So far its basic but still better than my native option on my cloud provider. Rclone also support local encryption before uploading and decryption on download.
 
 ---
 
