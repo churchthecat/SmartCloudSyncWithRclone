@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# SmartCloudSyncWithRclone
+# SmartCloudSyncWithRclone v2.2
+# Skips all empty files automatically
 
 VERSION="2.2"
 LOCK_FILE="/tmp/smartcloud.lock"
@@ -9,7 +10,7 @@ CONFIG_FILE="$PROJECT_ROOT/config/folders.conf"
 
 MODE="live"
 EXTRA_ARGS=""
-REMOTE="internxt"  # Change this if you use another rclone remote
+REMOTE="internxt"  # Change if you use another rclone remote
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -69,21 +70,20 @@ grep -v '^#' "$CONFIG_FILE" | grep -v '^$' | while IFS=":" read -r SRC DEST; do
     echo "$SRC -> $DEST"
     echo
 
-    # Determine local source path
-    if [[ "$SRC" = /* ]]; then
-        LOCAL_SRC="$SRC"
-    else
-        LOCAL_SRC="$HOME/$SRC"
+    # Local source path (folders live in home)
+    LOCAL_SRC="$HOME/$SRC"
+
+    # Skip folder if missing
+    if [[ ! -d "$LOCAL_SRC" ]]; then
+        echo "Skipping $SRC: folder not found"
+        continue
     fi
 
     # Dry-run option
-    if [[ "$MODE" == "dry-run" ]]; then
-        DRY="--dry-run"
-    else
-        DRY=""
-    fi
+    DRY=""
+    [[ "$MODE" == "dry-run" ]] && DRY="--dry-run"
 
-    # Run rclone sync
+    # Run rclone, skipping all empty files using --min-size 1b
     rclone sync \
         "$LOCAL_SRC" "$REMOTE:$DEST" \
         --progress \
@@ -92,7 +92,8 @@ grep -v '^#' "$CONFIG_FILE" | grep -v '^$' | while IFS=":" read -r SRC DEST; do
         --checkers 8 \
         --delete-during \
         $DRY \
-        $EXTRA_ARGS
+        $EXTRA_ARGS \
+        --min-size 1b
 
 done
 
