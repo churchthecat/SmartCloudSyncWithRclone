@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
-# Skips all empty files automatically
+# SmartCloudSyncWithRclone v2.3.1
+# Adds validation + safety protections
 
-VERSION_FILE="$PROJECT_ROOT/VERSION"
-VERSION=$(cat "$VERSION_FILE" 2>/dev/null || echo "dev")
-
+VERSION="2.3.1"
 LOCK_FILE="/tmp/smartcloud.lock"
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_FILE="$PROJECT_ROOT/config/folders.conf"
-RCLONE_COMMON_FLAGS="--progress --size-only --transfers 2 --checkers 2 --tpslimit 5 --min-size 1b"
+VALIDATOR="$PROJECT_ROOT/validator.sh"
 
 MODE="live"
 EXTRA_ARGS=""
-REMOTE="internxt"  # Change if you use another rclone remote
+REMOTE="internxt"
 
-# Parse command-line arguments
+# -----------------------------
+# Parse arguments
+# -----------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --mode)
@@ -33,7 +34,6 @@ done
 
 echo
 echo "================================"
-echo "SmartCloudSyncWithRclone"
 echo "SmartCloudSyncWithRclone v$VERSION"
 echo "Started: $(date)"
 echo "PROJECT ROOT = $PROJECT_ROOT"
@@ -42,25 +42,41 @@ echo
 echo "Mode: $MODE"
 echo
 
-# Lockfile handling
+# -----------------------------
+# Lockfile protection
+# -----------------------------
 if [[ -f "$LOCK_FILE" ]]; then
     echo "⚠ Another sync is already running."
     exit 1
 fi
+
 trap 'rm -f "$LOCK_FILE"' EXIT
 touch "$LOCK_FILE"
 
-# Check configuration
-if [[ ! -f "$CONFIG_FILE" ]]; then
-    echo "Missing folders.conf"
+# -----------------------------
+# Config validation
+# -----------------------------
+if [[ ! -x "$VALIDATOR" ]]; then
+    echo "❌ validator.sh missing or not executable"
     exit 1
 fi
 
-# Count valid folders
+"$VALIDATOR" || exit 1
+
+# -----------------------------
+# Check folders config
+# -----------------------------
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    echo "❌ Missing folders.conf"
+    exit 1
+fi
+
 TOTAL=$(grep -v '^#' "$CONFIG_FILE" | grep -v '^$' | wc -l)
 COUNT=0
 
-# Process each folder
+# -----------------------------
+# Main loop
+# -----------------------------
 grep -v '^#' "$CONFIG_FILE" | grep -v '^$' | while IFS=":" read -r SRC DEST; do
 
     [[ -z "$SRC" ]] && continue
@@ -73,53 +89,52 @@ grep -v '^#' "$CONFIG_FILE" | grep -v '^$' | while IFS=":" read -r SRC DEST; do
     echo "$SRC -> $DEST"
     echo
 
-    # Local source path (folders live in home)
     LOCAL_SRC="$HOME/$SRC"
 
-    # Skip folder if missing
     if [[ ! -d "$LOCAL_SRC" ]]; then
-        echo "Skipping $SRC: folder not found"
+        echo "⚠ Skipping $SRC: folder not found"
         continue
     fi
 
-    # Dry-run option
     DRY=""
     [[ "$MODE" == "dry-run" ]] && DRY="--dry-run"
 
-    # Run rclone, skipping all empty files using --min-size 1b
-if [[ "$MODE" == "backup" ]]; then
+    # -----------------------------
+    # Mass delete protection
+    # -----------------------------
+    if [[ "$MODE" != "dry-run" ]]; then
+        echo "🔍 Checking for dangerous deletions..."
 
-    # Encrypted backup (copy, no deletes)
-    rclone copy \
-        "$LOCAL_SRC" "$REMOTE_CRYPT:$DEST" \
-        $RCLONE_COMMON_FLAGS \
-        --ignore-existing \
-        $DRY \
-        $EXTRA_ARGS
+        DELETE_COUNT=$(rclone sync \
+            "$LOCAL_SRC" "$REMOTE:$DEST" \
+            --dry-run \
+            --delete-during \
+            --min-size 1b 2>&1 | grep -c "Deleting")
 
-else
+        if [[ $DELETE_COUNT -gt 50 ]]; then
+            echo "❌ Too many deletions detected ($DELETE_COUNT). Aborting."
+            exit 1
+        fi
+    fi
 
-    # Default: mirror sync (with deletes)
+    # -----------------------------
+    # Run sync
+    # -----------------------------
     rclone sync \
         "$LOCAL_SRC" "$REMOTE:$DEST" \
-        $RCLONE_COMMON_FLAGS \
+        --progress \
+        --fast-list \
+        --transfers 3 \
+        --checkers 2 \
+        --tpslimit 5 \
+        --retries 3 \
+        --low-level-retries 5 \
         --delete-during \
+        --min-size 1b \
         $DRY \
         $EXTRA_ARGS
-
-fi
-
-if [[ "$MODE" != "live" && "$MODE" != "dry-run" && "$MODE" != "backup" ]]; then
-    echo "Invalid mode: $MODE"
-    echo "Use: live | dry-run | backup"
-    exit 1
-fi
-
-if [[ "$MODE" == "backup" ]]; then
-    echo "Backup mode: NO deletions will occur"
-fi
 
 done
 
 echo
-echo "Sync complete"
+echo "✅ Sync complete"
