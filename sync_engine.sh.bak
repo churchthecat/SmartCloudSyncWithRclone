@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
+# SmartCloudSyncWithRclone v2.2
 # Skips all empty files automatically
 
-VERSION_FILE="$PROJECT_ROOT/VERSION"
-VERSION=$(cat "$VERSION_FILE" 2>/dev/null || echo "dev")
-
+VERSION="2.2"
 LOCK_FILE="/tmp/smartcloud.lock"
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -34,7 +33,6 @@ done
 echo
 echo "================================"
 echo "SmartCloudSyncWithRclone"
-echo "SmartCloudSyncWithRclone v$VERSION"
 echo "Started: $(date)"
 echo "PROJECT ROOT = $PROJECT_ROOT"
 echo "================================"
@@ -87,37 +85,17 @@ grep -v '^#' "$CONFIG_FILE" | grep -v '^$' | while IFS=":" read -r SRC DEST; do
     [[ "$MODE" == "dry-run" ]] && DRY="--dry-run"
 
     # Run rclone, skipping all empty files using --min-size 1b
-if [[ "$MODE" == "backup" ]]; then
-
-    # Encrypted backup (copy, no deletes)
-    rclone copy \
-        "$LOCAL_SRC" "$REMOTE_CRYPT:$DEST" \
-        $RCLONE_COMMON_FLAGS \
-        --ignore-existing \
-        $DRY \
-        $EXTRA_ARGS
-
-else
-
-    # Default: mirror sync (with deletes)
     rclone sync \
         "$LOCAL_SRC" "$REMOTE:$DEST" \
-        $RCLONE_COMMON_FLAGS \
+        --progress \
+        --size-only \
+        --transfers 3 \
+        --checkers 2 \
         --delete-during \
+	--tpslimit 5
         $DRY \
-        $EXTRA_ARGS
-
-fi
-
-if [[ "$MODE" != "live" && "$MODE" != "dry-run" && "$MODE" != "backup" ]]; then
-    echo "Invalid mode: $MODE"
-    echo "Use: live | dry-run | backup"
-    exit 1
-fi
-
-if [[ "$MODE" == "backup" ]]; then
-    echo "Backup mode: NO deletions will occur"
-fi
+        $EXTRA_ARGS \
+        --min-size 1b
 
 done
 

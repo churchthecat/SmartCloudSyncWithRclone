@@ -41,3 +41,34 @@ config/exclude.conf
 *.swp
 .DS_Store
 
+# User configs (NEVER commit)
+config/config.sh
+config/folders.conf
+config/exclude.conf
+
+# Rclone sensitive data
+.rclone.conf
+rclone.conf
+
+# Logs
+*.log
+
+# Temp / locks
+*.lock
+/tmp/
+
+# Build artifacts
+dist/
+build/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+.vscode/
+.idea/
+
+EOF
