@@ -54,6 +54,7 @@ __pycache__/
 *.bak
 *.part
 *.tmp
+sync_engine.sh.bak
 
 # =========================
 # Build artifacts
