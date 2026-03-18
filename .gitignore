@@ -6,9 +6,8 @@ config/folders.conf
 config/exclude.conf
 config/*.key
 config/*.token
-config/.env
 config/*.secret
-config/*.conf
+config/.env
 
 # Allow example configs
 !config/config.example.sh
@@ -23,18 +22,37 @@ rclone.conf
 .config/rclone/rclone.conf
 
 # =========================
-# Logs & temp
+# Runtime data (DO NOT COMMIT)
 # =========================
+logs/
+state/
 *.log
 *.lock
 /tmp/
+
+# =========================
+# Cache / system junk
+# =========================
 .cache/
+**/.cache/
 .local/share/Trash/
+.snap/
+
+# =========================
+# Dev junk (IMPORTANT)
+# =========================
+node_modules/
+**/node_modules/
+__pycache__/
+**/__pycache__/
+**/.git/
 
 # =========================
 # Backup / temp files
 # =========================
 *.bak
+*.part
+*.tmp
 
 # =========================
 # Build artifacts
@@ -59,7 +77,12 @@ Thumbs.db
 .idea/
 
 # =========================
-# Systemd local units (optional)
+# Systemd (only local overrides)
 # =========================
-*.service
+*.service.local
 
+
+# Just in case
+*.pem
+*.key
+*.env
