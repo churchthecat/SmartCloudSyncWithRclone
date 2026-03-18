@@ -4,6 +4,7 @@
 config/config.sh
 config/folders.conf
 config/exclude.conf
+config/*.conf
 config/*.key
 config/*.token
 config/*.secret
@@ -81,8 +82,11 @@ Thumbs.db
 # =========================
 *.service.local
 
-
-# Just in case
+# =========================
+# Extra safety
+# =========================
 *.pem
 *.key
 *.env
+info.md
+
